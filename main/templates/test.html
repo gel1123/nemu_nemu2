@@ -116,13 +116,13 @@ const mark = (target_id) => {
 };
 const mark1 = (target_id, self) => {
 	const err_target_list_parent = document.querySelectorAll("#mediaerr *");
-	err_target_list_parent.forEach((e) => {
+	err_target_list_parent.forEach(e => {
 		e.style.color = "";
 		e.style.backgroundColor = "";
 	});
 	if (self.error) {
 		const err_target_list = document.querySelectorAll(`.mediaerr${self.error.code}`);
-		err_target_list.forEach((e) => {
+		err_target_list.forEach(e => {
 			e.style.color = "red";
 			e.style.backgroundColor = "yellow";
 		});
@@ -358,7 +358,7 @@ document.querySelector("#storagecode-result4").textContent = JSON.stringify(loca
 		oninput="Function(this.textContent)();"
 		id="webstorage-code5" spellcheck="false">
 // storageイベントハンドラは別タブで同ドメインのストレージ操作があったときに発火する（IE以外）
-window.onstorage = (e) => {
+window.onstorage = e => {
 	const info = {
 		key: e.key, // 変更されたキー
 		oldValue: e.oldValue, // 変更前の値
@@ -385,30 +385,144 @@ window.onstorage = (e) => {
 <hr>
 <div id="studying-idb">
 	<h2>indexedDBの使い方</h2>
+	<h3>CREATE STORE</h3>
 	<pre><code id="idb-code1" contenteditable="true"
 		oninput="Function(this.textContent)();" spellcheck="false">
-// データベースを開く ※応答はIDBOpenDBRequestオブジェクト（IDBRequestオブジェクトを継承している）
-var request = window.indexedDB.open("testdb", 7);
+indexedDB.deleteDatabase("DATABASE");
 
-// IDBRequestオブジェクトのイベントハンドラ [ 失敗 / 成功 ]
-console.log(request);
-request.onerror = (e) => console.error("onerror", e);
-request.onsuccess = (e) => {
-	// e.targetはIDBOpenDBRequestオブジェクト（上記の変数requestと同一）
-	console.log("IDB接続OK");
-	const opendb_req = {
-		error: e.target.error, // エラー時DOMErrorオブジェクト
-		result: e.target.result, // データベースへの処理結果
-		sorce: e.target.sorce, // 処理依頼元オブジェクト
-		readyState: e.target.readyState, // 処理の状態
-		transaction: e.target.transaction // トランザクションの状態
+const sel = (s) => document.querySelector(s);
+const disp = sel("#idb-result1");
+const w = (str) => disp.textContent+=str+"\n";
+const customerData = [
+	{ ssn: "444-44-4444", name: "Bill", 
+		age: 35, email: "bill@company.com" },
+	{ ssn: "555-55-5555", name: "Donna", 
+		age: 32, email: "donna@home.org" }
+];
+
+const r = window.indexedDB.open("DATABASE", 1);
+window.db = undefined;
+r.onerror = e => {
+	w("---- error ----");
+	w(e.target.errorCode);
+};
+r.onsuccess = e => {
+	w("---- success ----");
+	db = e.target.result;
+	const version = db.version;
+	w(`---- version is ${version} ----`)
+	db.close();
+	const second_req = indexedDB.open("DATABASE", parseInt(version)+1);
+	second_req.onupgradeneeded = e => {
+		w("---- second-onupgradeneeded ----");
+		db = e.target.result;
+		const names_store = db.createObjectStore("names", { autoIncrement : true });
+		names_store.transaction.oncomplete = e => {
+			w("---- names_store(transaction-complete) ----");
+			const nstore = db.transaction("names", "readwrite").objectStore("names");
+			["gel", "sig", "fab"].forEach((name) => nstore.add(name));
+		}
+	};
+	second_req.onsuccess = e => {
+		w("---- second-success ----");
+		db = e.target.result;
+		const version = db.version;
+		w(`---- version is ${version} ----`)
+	};
+	second_req.onerror = e => w("---- second-error ----");
+	second_req.onabort = e => w("---- second-abort ----");
+};
+r.onupgradeneeded = e => {
+	w("---- upgradeneeded ----");
+	db = e.target.result;
+	const store = db.createObjectStore(
+		"customers", { keyPath: "ssn" }
+	);
+	store.createIndex(
+		"name", "name", { unique: false }
+	);
+	store.createIndex(
+		"email", "email", { unique: true }
+	);
+	store.transaction.oncomplete = e => {
+		w("---- transaction-complete ----");
+		const cstore = db.transaction(
+			"customers", "readwrite"
+		).objectStore("customers");
+		for (var i in customerData) {
+			cstore.add(customerData[i]);
+		}
+	};
+	store.transaction.onabort = e => {
+		w("---- transaction-abort ----");
+		w(e);
+	}
+	store.transaction.onerror = e => {
+		w("---- transaction-error ----");
+		w(e);
 	}
 };
+	</code></pre>
+	<h3>GET RECORD</h3>
+	<pre><code id="idb-code2" contenteditable="true"
+		spellcheck=false>
+const sel = (s) => document.querySelector(s);
+const disp = sel("#idb-result1");
+const w = (str) => disp.textContent+=str+"\n";
 
-// IDBOpenDBRequestオブジェクトのイベントハンドラ（データベースのバージョンアップ / データベースが使用中）
-request.onupgradeneeded = (e) => console.log("onupgradeneeded", e); // DBの新規作成時と、既存バージョンより新しいバージョンを指定時に発火する
-request.onblocked = (e) => console.error("onupgradeneeded", e); // データベース使用中につき上記を発火できないケースで発火する
-	</code>/<pre>
+const transaction = db.transaction(
+	["customers"], "readonly"
+);
+const cstore = transaction.objectStore("customers");
+const creq = cstore.get("444-44-4444");
+creq.onerror = function(event) {
+  w("---- get-error ----");
+};
+creq.onsuccess = function(event) {
+	w("Name for SSN 444-44-4444 is "
+		+ creq.result.name);
+};
+	</code></pre>
+	<div><button onclick='try {
+		Function(document.querySelector("#idb-code2").textContent)();
+	} catch(e) {document.querySelector("#idb-result1").textContent += e+"\n"}'>exec</button></div>
+	<h3>GET ALL RECORD</h3>
+	<pre><code id="idb-code3" contenteditable="true"
+		spellcheck=false>
+const sel = (s) => document.querySelector(s);
+const disp = sel("#idb-result1");
+const w = (str) => disp.textContent+=str+"\n";
+
+const transaction = db.transaction(
+	["customers"], "readonly"
+);
+const cstore = transaction.objectStore("customers");
+cstore.openCursor().onsuccess = function(event) {
+	const cursor = event.target.result;
+	if (cursor) {
+		w("Name for SSN " + cursor.key + " is " + cursor.value.name);
+		cursor.continue();
+	} else {
+		w("No more customers");
+  }
+};
+
+db.transaction("names").objectStore("names").openCursor().onsuccess = e => {
+	const cursor = event.target.result;
+	if (cursor) {
+		w(`${cursor.key}: ${cursor.value}`)
+		cursor.continue();
+	} else {
+		w("No more names");
+	}
+}
+	</code></pre>
+	<div><button onclick='try {
+		Function(document.querySelector("#idb-code3").textContent)();
+	} catch(e) {document.querySelector("#idb-result1").textContent += e+"\n"}'>exec</button></div>
+	
+	<h3>IndexedDBのコード実行結果（ "CREATE STORE" のみ初期表示時に実行済み。他はボタン押下で実行 ）</h3>
+	<pre><code id="idb-result1"></code></pre>
 </div>
 </body>
 </html>
