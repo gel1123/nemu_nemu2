@@ -101,7 +101,9 @@ window.onload = () => {
 		document.querySelector('#blob-code1'),
 		document.querySelector('#ws-code1'),
 		document.querySelector('#xhr-code1'),
-		document.querySelector('#sp-code1')
+		document.querySelector('#sp-code1'),
+		document.querySelector('#sse-code1'),
+		document.querySelector('#other-code1')
 
 	].forEach((elm) => elm.dispatchEvent(new Event('input')));
 }
@@ -591,18 +593,25 @@ const STATE = {
 };
 
 w("---- [before open] ----");
-w(`${STATE[client.readyState]} ["${client.readyState}"]`);
+w(`["${client.readyState}"] ${STATE[client.readyState]}`);
 
 client.open("POST", "http://localhost:8080/xhr");
 client.setRequestHeader("Content-Type", "text/plain");
+w("default timeout is " + client.timeout);
+client.timeout = 5000; // millisecond
 
 w("\n---- [before send] ----");
-w(`${STATE[client.readyState]} ["${client.readyState}"]`);
+w(`["${client.readyState}"] ${STATE[client.readyState]}`);
 
 client.send("Hi!");
 client.onreadystatechange = e => {
 	w("\n---- readystatechange (readyStateが変更) ----");
-	w(`${STATE[client.readyState]} ["${client.readyState}"]`);
+	w(`["${client.readyState}"] ${STATE[client.readyState]}`);
+
+	if (client.readyState == "2") {
+
+		client.responseType = "json";
+	}
 };
 client.onloadstart = e => {
 	w("\n---- loadstart (リソースのロード開始) ----");
@@ -623,6 +632,38 @@ client.onerror = e => {
 client.onload = e => {
 	w("\n---- load (リソース読み込み完了) ----");
 	console.log(e);
+
+	try {
+		client.overrideMimeType("text/html");
+	} catch (e) {
+		w("-- catch exception --");
+		w(e);
+	}
+
+	try {
+		const text = client.responseText;
+	} catch(e) {
+		w("-- catch exception --");
+		w(e);
+	}
+	try {
+		const xml = client.responseXML;
+	} catch(e) {
+		w("-- catch exception --");
+		w(e);
+	}
+
+	const info = {
+		"getResponseHeader()": client.getResponseHeader("Content-Type"),
+		"getAllResponseHeaders()": client.getAllResponseHeaders(),
+		status: client.status,
+		statusText: client.statusText,
+		responseType: client.responseType,
+		response: client.response
+	};
+
+	w("\n-- HTTP status is "+client.status+" --");
+	w(JSON.stringify(info, null, "    "));
 };
 client.ontimeout = e => {
 	w("\n---- timeout (通信タイムアウト) ----");
@@ -641,20 +682,97 @@ client.onloadend = e => {
 				 oninput="try { Function(this.textContent)();} catch(e) {document.querySelector('#sp-result1').textContent += e+'\n'}" spellcheck="false">
 const w = str => document.querySelector("#sp-result1").innerHTML += str+"\n";
 window.addEventListener("orientationchange", e => {
-	w("---- 画面方向の変更が検出されました ----");
+	w("---- orientationchange :: 画面方向の変更が検出されました ----");
 	
 	// イベント検出直後には横幅の取得が正確ではないので
 	// 横幅の取得は処理を遅延させて行うのがベスト
 	// 参考にしたURL：http://www.cattlemute.com/2017/12/08/39/
 	setTimeout(() => {
-		w("-- ウィンドウの横幅（遅延取得） --");
+		w("-- orientationchange :: ウィンドウの横幅（遅延取得） --");
 		w(window.innerWidth);
 	}, 100);
-	w("-- ウィンドウの横幅（イベント発生直後） --");
+	w("-- orientationchange :: ウィンドウの横幅（イベント発生直後） --");
+	w(window.innerWidth);
+});
+window.addEventListener("resize", e => {
+	w("---- resize :: 画面方向の変更が検出されました ----");
+	setTimeout(() => {
+		w("-- resize :: ウィンドウの横幅（遅延取得） --");
+		w(window.innerWidth);
+	}, 100);
+	w("-- resize :: ウィンドウの横幅（イベント発生直後） --");
 	w(window.innerWidth);
 });
 	</code></pre>
 	<pre><code id="sp-result1"></code></pre>
+</div>
+<div id="studying-sse">
+	<h2>Server-Sent Events</h2>
+	<pre><code id="sse-code1" contenteditable="true"
+				 oninput="try { Function(this.textContent)();} catch(e) {document.querySelector('#sse-result1').textContent += e+'\n'}" spellcheck="false">
+const w = str => document.querySelector("#sse-result1").innerHTML += str+"\n";
+const sse = new EventSource("/sse");
+const STATE = {
+	0: "[0] CONNECTING",
+	1: "[1] OPEN",
+	2: "[2] CLOSE"
+};
+let count = 0;
+w(STATE[sse.readyState]);
+sse.onopen = e => {
+	w("---- open ----");
+	console.log("server sent event", e);
+	w(STATE[sse.readyState]);
+};
+sse.onmessage = e => {
+	w("---- message ----");
+	console.log("server sent event", e);
+	w(STATE[sse.readyState]);
+	w(e.data);
+	count++;
+	count > 4 && sse.close();
+};
+sse.onerror = e => {
+	w("---- error ----");
+	console.log("server sent event", e);
+	w(STATE[sse.readyState]);
+};
+	</code></pre>
+	<pre><code id="sse-result1"></code></pre>
+</div>
+<div id="studying-other">
+	<h2>other</h2>
+	<pre><code id="other-code1" contenteditable="true"
+				 oninput="try { Function(this.textContent)();} catch(e) {document.querySelector('#other-result1').textContent += e+'\n'}" spellcheck="false">
+const w = str => document.querySelector("#other-result1").innerHTML += str+"\n";
+
+const successCB = p => {
+	w("----geolocation API----");
+	w("-- success--");
+	w(JSON.stringify(p.coords, null, '    '));
+
+};
+const errorCB= e => {
+	w("----geolocation API----");
+	w("-- error --");
+	w(e.code);
+	w(e.message);
+
+};
+navigator.geolocation.getCurrentPosition(successCB, errorCB);
+
+w("---- High Resolution Time API  ----");
+w(performance.now());
+
+setTimeout(() => {
+	w("---- performance.timing ----");
+	const ent = Object.entries(JSON.parse(JSON.stringify(performance.timing)));
+	ent.sort((p1,p2) => p2[1]-p1[1]);
+	w(JSON.stringify(Object.fromEntries(ent), null, "    "));
+}, 500);
+
+	</code></pre>
+	<pre><code id="other-result1"></code></pre>
 </div>
 </body>
 </html>
