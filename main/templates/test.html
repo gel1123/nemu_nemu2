@@ -809,6 +809,16 @@ setTimeout(() => {
 	w(JSON.stringify(Object.fromEntries(ent), null, "    "));
 }, 500);
 
+window.addEventListener("deviceorientation", e => {
+	w("---- deviceorientation ----")
+	const info = {
+		"z軸（alpha. 0~360）": e.alpha,
+		"x軸（beta. -180~180）": e.beta,
+		"y軸（gamma. -90~90）": e.gamma
+	}
+	w(JSON.stringify(info, null, "    "));
+});
+
 
 // ---- study requestAnimationFrame ----
 // -- 画面最下部に水色の長方形がスライドしていくアニメーションを作成 --
