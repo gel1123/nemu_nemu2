@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script> -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js" integrity="sha512-bCsBoYoW6zE0aja5xcIyoCDPfT27+cGr7AOCqelttLVRGay6EKGQbR6wm6SUcUGOMGXJpj+jrIpMS6i80+kZPw==" crossorigin="anonymous"></script>
+<style>
+	#photo-area.viewport {
+		height: 288px;
+	}
+	#photo-area.viewport canvas, video {
+		float: left;
+		height: 288px;
+	}
+	#photo-area.viewport canvas.drawingBuffer, video.drawingBuffer {
+	   margin-left: -352px;
+	}
+</style>
+</head>
+<body>
+<div>
+	<h2>バーコードリーダ実装テスト</h2>
+	<div id="photo-area" class="viewport"></div>
+	<script>
+		console.log("before init");
+		Quagga.init({
+			inputStream: {
+				name: "Live",
+				type: "LiveStream",
+				target: document.querySelector("#photo-area")
+			},
+			decoder: {
+				renders: ["code_128_render"]
+			}
+		}, function(err) {
+			console.log("---- bt start ----");
+			Quagga.start();
+		});
+	</script>	
+</div>
+</body>
+</html>
+
