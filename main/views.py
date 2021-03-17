@@ -6,4 +6,4 @@ import json
 
 @app.route('/')
 def show_entries():
-    return render_template("test2.html", title="jstool")
+    return render_template("test3.html", title="jstool")

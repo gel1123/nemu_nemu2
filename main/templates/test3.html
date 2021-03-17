@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>quagga_test</title>
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script> -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js" integrity="sha512-bCsBoYoW6zE0aja5xcIyoCDPfT27+cGr7AOCqelttLVRGay6EKGQbR6wm6SUcUGOMGXJpj+jrIpMS6i80+kZPw==" crossorigin="anonymous"></script>
+<style>
+#view {
+	position: resolve;
+}
+#view .imageBuffer {
+	position: absolute;
+	top: 0;
+	left: 0;
+}
+#view .drawingBuffer {
+	position: absolute;
+	left: 0;
+}
+
+</style>
+</head>
+<body>
+<div>
+	<h1>バーコードリーダ実装テスト（静止画像）</h1>
+	<input type="file" onchange="decode(this)">
+	<h2 id="h2r">読み取り結果</h2>
+	<div id="result"></div>
+	<h2>読み取った画像（読み取り成功時はバーコードが青枠で囲まれます）</h2>
+	<div id="view"></div>
+</div>
+<script>
+
+var draw = function(r) {
+	var ctx = Quagga.canvas.ctx.overlay;
+	var canvas = Quagga.canvas.dom.overlay;
+	r && r.boxes && (function() {
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		r.boxes.filter(function(b) { return b !== r.box }).forEach(function(b) {
+			Quagga.ImageDebug.drawPath(b, { x: 0, y: 1 }, ctx, { color: 'green', lineWidth: 2 });
+		});
+	})();
+	r && r.box && (function() {
+		Quagga.ImageDebug.drawPath(r.box, { x: 0, y: 1 }, ctx, { color: 'blue', lineWidth: 2 });
+	})();
+	r && r.codeResult && r.codeResult.code && (function() {
+		Quagga.ImageDebug.drawPath(r.line, { x: 'x', y: 'y' }, ctx, { color: 'red', lineWidth: 3 });
+	})();
+};
+
+var decode = function(self) {
+	var f = self.files[0];
+	var r = new FileReader();
+	r.addEventListener("load", function() {
+		var src = r.result;
+		Quagga.decodeSingle({
+			inputStream: {
+				target: "#view"
+			},
+			decoder: {
+				readers: ["code_128_reader"] // List of active reader},
+			},
+			locate: true, // try to locate the barcode in the image
+			src: src // or 'data:image/jpg;base64,' + data
+		}, function(result){
+			draw(result);
+			if(result.codeResult) {
+				console.log("result", result.codeResult.code);
+				document.querySelector("#result").innerText = "読取成功："+result.codeResult.code;
+				document.querySelector("#result").style.color = "blue";
+				document.querySelector("#h2r").style.color = "blue";
+			} else {
+				console.log("not detected");
+				document.querySelector("#result").innerText = "読取失敗";
+				document.querySelector("#result").style.color = "red";
+				document.querySelector("#h2r").style.color = "red";
+			}
+		});
+	}, false);
+	f && r.readAsDataURL(f);
+};
+
+</script>
+</body>
+</html>
+
