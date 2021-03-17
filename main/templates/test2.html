@@ -3,18 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <title>quagga_test</title>
+<meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script> -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js" integrity="sha512-bCsBoYoW6zE0aja5xcIyoCDPfT27+cGr7AOCqelttLVRGay6EKGQbR6wm6SUcUGOMGXJpj+jrIpMS6i80+kZPw==" crossorigin="anonymous"></script>
 <style>
 	#photo-area.viewport {
 		width: 300px;
-		height: 288px;
+		height: 200px;
 	}
 	#photo-area.viewport canvas, video {
 		float: left;
 		width: 300px;
-		height: 288px;
+		height: 200px;
 	}
 	#photo-area.viewport canvas.drawingBuffer, video.drawingBuffer {
 		margin-left: -300px;
@@ -34,6 +35,7 @@
 	<h2 id="yk">読取結果（30回読取を試行して、その中の最頻値を結果として出力）</h2>
 	<h3><div><strong><span id="r3" style="color: blue"></span></strong></div></h3>
 	<button id="reset" onclick="reset()">もう一度読取処理を実行する</button>
+	<button id="stop" onclick="stop()">読取処理を停止する</button>
 	<h2>全試行の集計</h2>
 	<div id="r2"></div>
 	<h2>読取ログ</h2>
@@ -76,18 +78,21 @@
 		}
 
 		// バーコードリーダの初期化 & 読取処理
-		Quagga.init({
-			inputStream: {
-				name: "Live",
-				type: "LiveStream",
-				target: document.querySelector("#photo-area")
-			},
-			decoder: {
-				renders: ["code_128_render"]
-			}
-		}, function(err) {
-			Quagga.start();
-		});
+		var init = function() {
+			Quagga.init({
+				inputStream: {
+					name: "Live",
+					type: "LiveStream",
+					target: document.querySelector("#photo-area")
+				},
+				decoder: {
+					renders: ["code_128_render"]
+				}
+			}, function(err) {
+				Quagga.start();
+			});
+		};
+		init();
 		Quagga.onProcessed(function(result) {
 			var drawingCtx = Quagga.canvas.ctx.overlay;
 			var drawingCanvas = Quagga.canvas.dom.overlay;
@@ -128,12 +133,17 @@
 
 		var codeArr = [];
 		var reset = function() {
+			try { Quagga.stop(); } catch(e) {}
+			init();
 			codeArr = [];
 			["#r1", "#r2", "#r3"].forEach(function(e) {
 				document.querySelector(e).innerHTML = "";
 			});
 			document.querySelector("#yk").style.color = "";
 		};
+		var stop = function() {
+			Quagga.stop();
+		}
 		var d = [new Date().getTime()];
 		Quagga.onDetected(function (result) {
 			codeArr.length <= 29 && (function() {
