@@ -21,18 +21,19 @@
 </head>
 <body>
 <div>
-	<h2>バーコードリーダ実装テスト</h2>
+	<h1>バーコードリーダ実装テスト</h1>
 	※IMEIバーコード読取用に、バーコード種別は【CODE128】でスクリプトを設定しています.<br/>
   CODE128以外のバーコード読取は正常に動作しない見込みです。<br/>
 	<br/>
 	カメラにバーコードをかざすと、リアルタイムでバーコードの読取が開始します。<br/>
  （読取が開始しない場合には、バーコードを近づけたり遠ざけたりしてください）
 	<div id="photo-area" class="viewport"></div>
-	<h3>読取結果（30回読取を試行して、その中の最頻値を結果として出力）</h3>
-	<div><strong><span id="r3"></span></strong></div>
-	<h3>全試行の集計</h3>
+	<h2>読取結果（30回読取を試行して、その中の最頻値を結果として出力）</h2>
+	<h3><div><strong><span id="r3" style="color: blue"></span></strong></div></h3>
+	<button id="reset" onclick="reset()">もう一度読取処理を実行する</button>
+	<h2>全試行の集計</h2>
 	<div id="r2"></div>
-	<h3>読取ログ</h3>
+	<h2>読取ログ</h2>
 	<div id="r1"></div>
 	<script>
 		// もっとも頻度の多い配列要素を取得するメソッド実装
@@ -69,7 +70,7 @@
 				.replace(/>/g, '&gt;')
 				.replace(/"/g, '&quot;')
 				.replace(/'/g, '&#039;');
-}
+		}
 
 		// バーコードリーダの初期化 & 読取処理
 		Quagga.init({
@@ -123,14 +124,21 @@
 		});
 
 		var codeArr = [];
+		var reset = function() {
+			codeArr = [];
+			["#r1", "#r2", "#r3"].forEach(function(e) {
+				document.querySelector(e).innerHTML = "";
+			});
+		};
 		var d = [new Date().getTime()];
 		Quagga.onDetected(function (result) {
-			console.log(result.codeResult.code);
-			if (!d[0]) { d[0] = new Date().getTime(); }
-			document.querySelector("#r1").innerHTML += "バーコード検出から" + (new Date().getTime()-d[0]) + "ミリ秒経過。取得結果: " + result.codeResult.code+"<br/>";
-			codeArr.push(result.codeResult.code);
+			codeArr.length <= 29 && (function() {
+				console.log(result.codeResult.code);
+				if (!d[0]) { d[0] = new Date().getTime(); }
+				document.querySelector("#r1").innerHTML += "バーコード検出から" + (new Date().getTime()-d[0]) + "ミリ秒経過。取得結果: " + result.codeResult.code+"<br/>";
+				codeArr.push(result.codeResult.code);
+			})();
 			codeArr.length > 29 && (function() {
-				Quagga.stop();
 				var r = codeArr.mode();
 				var result = r[0];
 				var counter = r[1];
