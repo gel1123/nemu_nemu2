@@ -8,14 +8,17 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js" integrity="sha512-bCsBoYoW6zE0aja5xcIyoCDPfT27+cGr7AOCqelttLVRGay6EKGQbR6wm6SUcUGOMGXJpj+jrIpMS6i80+kZPw==" crossorigin="anonymous"></script>
 <style>
 	#photo-area.viewport {
+		width: 300px;
 		height: 288px;
 	}
 	#photo-area.viewport canvas, video {
 		float: left;
+		width: 300px;
 		height: 288px;
 	}
 	#photo-area.viewport canvas.drawingBuffer, video.drawingBuffer {
-	   margin-left: -352px;
+		margin-left: -300px;
+	
 	}
 </style>
 </head>
@@ -28,7 +31,7 @@
 	カメラにバーコードをかざすと、リアルタイムでバーコードの読取が開始します。<br/>
  （読取が開始しない場合には、バーコードを近づけたり遠ざけたりしてください）
 	<div id="photo-area" class="viewport"></div>
-	<h2>読取結果（30回読取を試行して、その中の最頻値を結果として出力）</h2>
+	<h2 id="yk">読取結果（30回読取を試行して、その中の最頻値を結果として出力）</h2>
 	<h3><div><strong><span id="r3" style="color: blue"></span></strong></div></h3>
 	<button id="reset" onclick="reset()">もう一度読取処理を実行する</button>
 	<h2>全試行の集計</h2>
@@ -129,6 +132,7 @@
 			["#r1", "#r2", "#r3"].forEach(function(e) {
 				document.querySelector(e).innerHTML = "";
 			});
+			document.querySelector("#yk").style.color = "";
 		};
 		var d = [new Date().getTime()];
 		Quagga.onDetected(function (result) {
@@ -150,6 +154,7 @@
 				});
 				document.querySelector("#r2").innerHTML
 					= '<table><tr><th>読み取った値</th><th>読取回数</th></tr>'+html+'</table>'
+				document.querySelector("#yk").style.color = "blue";
 				document.querySelector("#r3").innerText = result;
 			})();
 		});
